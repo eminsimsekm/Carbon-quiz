@@ -1,0 +1,279 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Karbon Tahmin Testi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: tek sütun, bir soru kartı + üstte 10 parçalı ilerleme şeridi; seçince açıklama ve ölçekli karşılaştırma çubukları açılır */
+:root {
+  --bg: #eef2ee;
+  --surface: #ffffff;
+  --fg: #17201c;
+  --muted: #5b6a63;
+  --line: #d3ddd7;
+  --accent: #1f6b57;
+  --accent-soft: #dcebe4;
+  --good: #23824f;
+  --good-soft: #e1f2e7;
+  --bad: #b5402f;
+  --bad-soft: #f7e3df;
+  --bar: #9fb8ad;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111815; --surface: #19221e; --fg: #e6eee9; --muted: #9aaba3; --line: #2c3a33;
+    --accent: #5fc3a2; --accent-soft: #1d3a30; --good: #5ccc8a; --good-soft: #1a3526;
+    --bad: #f08a76; --bad-soft: #3d221d; --bar: #4f6b5f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111815; --surface: #19221e; --fg: #e6eee9; --muted: #9aaba3; --line: #2c3a33;
+  --accent: #5fc3a2; --accent-soft: #1d3a30; --good: #5ccc8a; --good-soft: #1a3526;
+  --bad: #f08a76; --bad-soft: #3d221d; --bar: #4f6b5f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 680px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 6vw, 40px); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.lede { color: var(--muted); margin: 0; max-width: 60ch; }
+
+.track { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.seg { height: 8px; border-radius: 2px; background: var(--line); border: 0; padding: 0; }
+.seg.cur { background: var(--accent); }
+.seg.ok { background: var(--good); }
+.seg.no { background: var(--bad); }
+.meta { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 22px; display: grid; gap: 16px; }
+.topic { font-family: var(--font-data); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(20px, 4.4vw, 25px); line-height: 1.25; margin: 0; text-wrap: balance; }
+.opts { display: grid; gap: 8px; }
+.opt {
+  display: grid; grid-template-columns: 28px 1fr 22px; align-items: center; gap: 10px;
+  width: 100%; text-align: left; font: inherit; color: var(--fg);
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 8px; padding: 11px 12px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.opt:disabled { cursor: default; }
+.key { font-family: var(--font-data); font-size: 13px; width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.mark { font-weight: 700; text-align: center; }
+.opt.right { border-color: var(--good); background: var(--good-soft); }
+.opt.right .key { background: var(--good); color: var(--surface); border-color: var(--good); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.wrong .key { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.opt.dim { opacity: .55; }
+
+.verdict { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; }
+.verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); }
+.explain { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.explain p { margin: 0; }
+.bars { display: grid; gap: 8px; }
+.bars-title { font-family: var(--font-data); font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.brow { display: grid; grid-template-columns: minmax(0, 9.5em) 1fr; gap: 10px; align-items: center; font-size: 14px; }
+.blabel { min-width: 0; }
+.btrack { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bfill { height: 14px; border-radius: 2px; background: var(--bar); min-width: 3px; }
+.bfill.hi { background: var(--accent); }
+.bval { font-family: var(--font-data); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.src { font-size: 13px; color: var(--muted); }
+
+.actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.btn {
+  font: inherit; font-weight: 700; border-radius: 8px; padding: 11px 18px; cursor: pointer;
+  background: var(--accent); color: var(--surface); border: 1.5px solid var(--accent);
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+
+.score { display: grid; gap: 6px; }
+.big { font-family: var(--font-display); font-weight: 800; font-size: clamp(56px, 16vw, 88px); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.big small { font-size: .4em; color: var(--muted); font-weight: 700; }
+.review { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.review li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 14.5px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.review li:last-child { border-bottom: 0; }
+.review .r { font-weight: 700; } .review .r.ok { color: var(--good); } .review .r.no { color: var(--bad); }
+.review .a { color: var(--muted); }
+.takeaway { background: var(--accent-soft); border-radius: 8px; padding: 14px 16px; margin: 0; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Sürdürülebilirlik · 10 soru</div>
+    <h1>Hangisi daha çok karbon salar?</h1>
+    <p class="lede">Günlük tercihlerin karbon ayak izini tahmin et. Her seçimden sonra doğru cevabı, gerçek rakamları ve kaynağını göreceksin.</p>
+  </header>
+
+  <div class="track" id="track" aria-label="İlerleme"></div>
+  <div class="meta"><span id="qnum">Soru 1 / 10</span><span id="live">0 doğru</span></div>
+
+  <main class="card" id="card" aria-live="polite"></main>
+
+  <footer>Rakamlar yuvarlatılmış küresel ya da Avrupa ortalamalarıdır; amaç büyüklük sırasını göstermek. Elektrik hesaplarında Türkiye şebekesi ≈ 0,44 kg CO₂e/kWh alınmıştır.</footer>
+</div>
+
+<script>
+const Q = [
+  { topic: "Ofiste kahve",
+    q: "Seramik bir kupa, kağıt bardaktan daha düşük karbonlu hale gelmek için yaklaşık kaç kez kullanılmalı?",
+    o: ["2–3 kez", "15–20 kez", "50 kez civarı", "Yıkama yöntemine göre yüzlerce kez"], c: 3,
+    e: "Kupa 1000°C'nin üzerindeki fırınlarda üretilir ama asıl yük yıkamadır: kupanın iklim etkisinin yaklaşık %90'ı yıkamadan gelir. Kafe ortamında başa baş noktası ≈ 350 kullanım. Kupayı yıllarca kullan, dolu bulaşık makinesinde yıka. Ayrıca paket servis kahvede bardak ve kapak toplam etkinin yalnızca ≈ %9'u; asıl yük kahve ve sütte.",
+    bt: "Paket servis kahvenin karbonu nereden gelir?", unit: "%",
+    b: [["Bardak + kapak", 9], ["Kahve, süt, hazırlama", 91, true]],
+    s: "Huhtamaki / Stora Enso destekli LCA; BM Çevre Programı 2021 derlemesi" },
+  { topic: "İçme suyu",
+    q: "1 litre pet şişe su, 1 litre musluk suyuna göre yaklaşık kaç kat sera gazı salar?",
+    o: ["2 kat", "10 kat", "50 kat", "200 kat veya daha fazla"], c: 3,
+    e: "Musluk suyu litre başına ≈ 0,5 g CO₂e. Pet şişe su, kaynağın uzaklığına ve şişe boyutuna göre ≈ 120–320 g. Küçük şişeler litre başına daha kötü; geri dönen damacana küçük pet şişeden iyidir.",
+    bt: "1 litre su, g CO₂e", unit: " g",
+    b: [["Musluk", 0.5], ["Pet şişe (iyi senaryo)", 118], ["Pet şişe (kötü senaryo)", 322, true]],
+    s: "Energy Surprises derlemesi, İngiltere su şirketi verileri" },
+  { topic: "Öğle yemeği",
+    q: "150 gramlık bir porsiyon dana eti, aynı miktar tavuğa göre kaç kat sera gazı salar?",
+    o: ["Yaklaşık aynı", "1,5–2 kat", "3–10 kat", "50 kat ve üzeri"], c: 2,
+    e: "Fark, sığırın sindirimiyle oluşan metandan ve arazi kullanımından gelir. Süt sığırından gelen et ≈ 5 kg, besi sığırından gelen et ≈ 15 kg; tavuk ≈ 1,5 kg.",
+    bt: "150 g porsiyon, kg CO₂e", unit: " kg",
+    b: [["Tofu", 0.45], ["Tavuk", 1.5], ["Dana (süt sığırı)", 5.0], ["Dana (besi sığırı)", 14.9, true]],
+    s: "Poore & Nemecek (2018), Our World in Data" },
+  { topic: "Sütlü kahve",
+    q: "1 litre inek sütü ile 1 litre yulaf sütünü karşılaştırırsak?",
+    o: ["Yulaf sütü daha fazla salar", "İkisi yaklaşık eşit", "İnek sütü 3–4 kat fazla salar", "İnek sütü 20 kat fazla salar"], c: 2,
+    e: "İnek sütü ≈ 3,2 kg CO₂e/L, yulaf sütü ≈ 0,9 kg. 200 ml sütlü bir lattede bu ≈ 0,64 kg'a karşı ≈ 0,18 kg demek.",
+    bt: "1 litre, kg CO₂e", unit: " kg",
+    b: [["Yulaf sütü", 0.9], ["İnek sütü", 3.2, true]],
+    s: "Poore & Nemecek (2018), Our World in Data" },
+  { topic: "Ankara – İstanbul",
+    q: "≈ 450 km'lik yolculukta kişi başı karbonun en düşükten en yükseğe sıralaması hangisi?",
+    o: ["Uçak < Tren < Tek kişilik araç", "Tren < Tek kişilik araç < Uçak", "Tek kişilik araç < Tren < Uçak", "Üçü de aşağı yukarı aynı"], c: 1,
+    e: "Uçak rakamı yüksek irtifa ısınma etkisini içerir; o hariç tutulursa ≈ 61 kg'a iner. Araçta 4 kişi olursa kişi başı ≈ 18 kg'a düşer ve trene yaklaşır. Türkiye'deki YHT elektriklidir; gerçek değer şebekeye bağlıdır.",
+    bt: "Kişi başı, kg CO₂e", unit: " kg",
+    b: [["Tren", 15], ["Araç (4 kişi)", 18], ["Araç (tek kişi)", 73], ["Uçak", 103, true]],
+    s: "DEFRA 2026 dönüşüm katsayıları" },
+  { topic: "Çamaşır kurutma",
+    q: "40°C'de yıkanıp kurutma makinesinde kurutulan bir yük çamaşırın karbonunun en büyük kısmı nereden gelir?",
+    o: ["Deterjan", "Yıkama suyunun ısıtılması", "Kurutma makinesi", "Kullanılan su"], c: 2,
+    e: "Karbonun yaklaşık dörtte üçü kurutmadan gelir. Klasik bir kurutma makinesi bir yükte ≈ 3,5–4,5 kWh harcar; Türkiye şebekesiyle bu yük başına ≈ 1,5–2 kg CO₂e demek.",
+    bt: "Bir yük çamaşır, kg CO₂e", unit: " kg",
+    b: [["40°C + askı", 0.7], ["40°C + kurutma makinesi", 2.4, true]],
+    s: "Mike Berners-Lee, How Bad Are Bananas?" },
+  { topic: "Yıkama sıcaklığı",
+    q: "Çamaşırı 40°C yerine 30°C'de yıkamak, makinenin enerji tüketimini yaklaşık ne kadar azaltır?",
+    o: ["%5", "%40 civarı", "%80", "Fark etmez"], c: 1,
+    e: "Tüketici testlerinde 40°C'den 30°C'ye geçmek ortalama %38, 20°C'ye inmek %62 tasarruf sağladı. Enerjinin büyük kısmı suyu ısıtmaya gidiyor.",
+    bt: "Yıkama başına enerji, 40°C = 100", unit: "",
+    b: [["20°C", 38], ["30°C", 62], ["40°C", 100, true]],
+    s: "Which? laboratuvar testleri" },
+  { topic: "Kot pantolon",
+    q: "Bir kot pantolonun ömür boyu karbonunun en büyük payı hangi aşamadan gelir?",
+    o: ["Pamuk yetiştirme", "Kumaş üretimi ve boyama", "Nakliye ve mağaza", "Kullanıcının yıkama ve kurutması"], c: 3,
+    e: "Bir kot pantolon ömrü boyunca ≈ 33,4 kg CO₂e salıyor. En büyük pay %37 ile kullanıcının yıkama-kurutması, ardından %27 ile kumaş üretimi. Daha seyrek yıkamak ve askıda kurutmak en kolay kaldıraç.",
+    bt: "Ömür boyu karbon payı", unit: "%",
+    b: [["Kumaş üretimi", 27], ["Diğer aşamalar", 36], ["Kullanıcı bakımı", 37, true]],
+    s: "Levi's 501 yaşam döngüsü analizi (2015)" },
+  { topic: "Dizi izlemek",
+    q: "Bir saat HD video izlemenin karbonu hangisine en yakın?",
+    o: ["Arabayla 10 km gitmek", "Arabayla 1 km gitmek", "Arabayla 200–300 metre gitmek", "Ankara – İstanbul uçuşu"], c: 2,
+    e: "Uluslararası Enerji Ajansı'nın tahmini bir saat video için ≈ 36 g CO₂e; Avrupa için başka bir çalışma ≈ 55 g veriyor. Tek kişilik araba km başına ≈ 160 g saldığından bu ≈ 220–340 metreye denk.",
+    bt: "g CO₂e", unit: " g",
+    b: [["1 saat HD video", 36], ["Arabayla 1 km", 162, true]],
+    s: "IEA (2020), Carbon Brief" },
+  { topic: "En büyük etki",
+    q: "Bir yıl boyunca uygulandığında hangisi en büyük karbon tasarrufunu sağlar?",
+    o: ["Her gün kağıt bardak yerine kendi kupanı kullanmak", "Dizi izlemeyi günde 2 saatten 1 saate indirmek", "Haftada 2 dana eti öğününü tavuk ya da baklagille değiştirmek", "Yılda 150 yük çamaşırı askıda kurutmak"], c: 2,
+    e: "Haftada 2 dana öğününü değiştirmek yılda ≈ 350 kg – 1,4 ton tasarruf ettirir. Askıda kurutmak ≈ 250 kg, dizi süresini yarıya indirmek ≈ 13–20 kg. Kupanın kazancı yıkamaya bağlı ve en iyi senaryoda onlarca kg mertebesinde.",
+    bt: "Yıllık tasarruf, kg CO₂e (alt tahmin)", unit: " kg",
+    b: [["Dizi süresi yarıya", 15], ["Kendi kupan", 30], ["Askıda kurutma", 255], ["Dana yerine tavuk/baklagil", 350, true]],
+    s: "Önceki sorulardaki kaynaklardan kaba hesap" }
+];
+
+const L = "abcd";
+let i = 0;
+const ans = Array(Q.length).fill(null);
+const $ = id => document.getElementById(id);
+const fmt = n => (n < 1 ? n.toLocaleString("tr-TR", { maximumFractionDigits: 2 }) : n.toLocaleString("tr-TR", { maximumFractionDigits: 1 }));
+const correct = () => ans.filter((a, k) => a === Q[k].c).length;
+
+function track() {
+  $("track").innerHTML = Q.map((q, k) => {
+    let cls = "seg";
+    if (ans[k] !== null) cls += ans[k] === q.c ? " ok" : " no";
+    else if (k === i) cls += " cur";
+    return `<span class="${cls}" title="Soru ${k + 1}"></span>`;
+  }).join("");
+  $("live").textContent = `${correct()} doğru`;
+}
+
+function bars(q) {
+  const max = Math.max(...q.b.map(x => x[1]));
+  return `<div class="bars"><div class="bars-title">${q.bt}</div>` + q.b.map(([lab, v, hi]) =>
+    `<div class="brow"><span class="blabel">${lab}</span><span class="btrack"><span class="bfill${hi ? " hi" : ""}" style="width:${Math.max(1, (v / max) * 72)}%"></span><span class="bval">${fmt(v)}${q.unit}</span></span></div>`
+  ).join("") + `</div>`;
+}
+
+function render() {
+  const q = Q[i], a = ans[i], done = a !== null;
+  $("qnum").textContent = `Soru ${i + 1} / ${Q.length}`;
+  let h = `<div class="topic">${q.topic}</div><h2>${q.q}</h2><div class="opts" role="group" aria-label="Seçenekler">`;
+  q.o.forEach((t, k) => {
+    let cls = "opt", mark = "";
+    if (done) {
+      if (k === q.c) { cls += " right"; mark = "✓"; }
+      else if (k === a) { cls += " wrong"; mark = "✕"; }
+      else cls += " dim";
+    }
+    h += `<button class="${cls}" id="opt-${i}-${k}" data-k="${k}" ${done ? "disabled" : ""}><span class="key">${L[k]}</span><span>${t}</span><span class="mark" aria-hidden="true">${mark}</span></button>`;
+  });
+  h += `</div>`;
+  if (done) {
+    const ok = a === q.c;
+    h += `<div class="explain"><p class="verdict ${ok ? "ok" : "no"}">${ok ? "Doğru!" : `Yanlış. Doğru cevap: ${L[q.c]}) ${q.o[q.c]}`}</p><p>${q.e}</p>${bars(q)}<p class="src">Kaynak: ${q.s}</p></div>
+      <div class="actions"><button class="btn" id="next">${i < Q.length - 1 ? "Sonraki soru →" : "Skorumu göster"}</button></div>`;
+  }
+  $("card").innerHTML = h;
+  $("card").querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => {
+    ans[i] = +b.dataset.k; track(); render();
+    const n = $("next"); if (n) n.focus();
+  }));
+  const n = $("next");
+  if (n) n.addEventListener("click", () => {
+    if (i < Q.length - 1) { i++; track(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else result();
+  });
+}
+
+function result() {
+  const s = correct();
+  const msg = s >= 9 ? "Karbon dedektifisin. Rakamların büyüklük sırasını çok iyi biliyorsun."
+    : s >= 7 ? "Çok iyi. Birkaç sürpriz dışında sezgilerin doğru."
+    : s >= 4 ? "Fena değil. Bazı cevaplar sezgiye ters, o yüzden şaşırmak normal."
+    : "Bu konuda sezgiler çoğu zaman yanıltıyor. Açıklamalara bir göz at.";
+  $("qnum").textContent = "Sonuç";
+  $("card").innerHTML = `
+    <div class="score"><div class="topic">Skorun</div><div class="big">${s}<small> / ${Q.length}</small></div><h2>${msg}</h2></div>
+    <p class="takeaway">Görünür olan (bardak, şişe, dijital kullanım) her zaman en büyük kalem değil. Beslenme, ulaşım ve ısı üreten ev aletleri genellikle çok daha belirleyici.</p>
+    <ol class="review">${Q.map((q, k) => {
+      const ok = ans[k] === q.c;
+      return `<li><span class="r ${ok ? "ok" : "no"}">${ok ? "✓" : "✕"}</span><span><b>${k + 1}. ${q.topic}</b><br><span class="a">Doğru cevap: ${q.o[q.c]}</span></span></li>`;
+    }).join("")}</ol>
+    <div class="actions"><button class="btn ghost" id="again">Baştan başla</button></div>`;
+  $("again").addEventListener("click", () => { ans.fill(null); i = 0; track(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+}
+
+track(); render();
+</script>
+
+</body></html>
